@@ -150,7 +150,7 @@ proyecto = "r2d-interno-dev"
 dataset_id="raw_aemet"
 id_tabla = "datosaemetgio_raw"
 id_tabla_full = f"{proyecto}.{dataset_id}.{id_tabla}"
-path_bucket=  f"gs://datosaemetgio/output_{fecha}_prediccion{fecha}.csv"
+path_bucket=  f"gs://datosaemetgio/output/{fecha}/prediccion{fecha}.csv"
 
 #cliente bigquery
 client = bigquery.Client(project = proyecto)
