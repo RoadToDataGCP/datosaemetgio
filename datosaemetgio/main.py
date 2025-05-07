@@ -4,10 +4,11 @@ from datetime import datetime
 import requests as rq
 import time
 from google.cloud import storage
+from google.cloud import bigquery
 
 
 api_key="eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJndWVycmVyb2FudGhvbnk5NzA3QGdtYWlsLmNvbSIsImp0aSI6IjlhOGQxMzE4LTgxZjYtNDIzZC05NTVmLWQwMWVlNDI1YzgwMCIsImlzcyI6IkFFTUVUIiwiaWF0IjoxNzQzMDc3Mzg5LCJ1c2VySWQiOiI5YThkMTMxOC04MWY2LTQyM2QtOTU1Zi1kMDFlZTQyNWM4MDAiLCJyb2xlIjoiIn0.YmW6rvOu7CwfegjjNHdiow6Dz_zwGx1ljdaoVpadelA"
-
+fecha= datetime.now().strftime("%Y-%m-%d")
 def crearMuni():
     df = pd.read_excel("diccionario24.xlsx")
     df.columns = df.iloc[0]
@@ -131,9 +132,9 @@ def tiempopre():
     df.to_csv("prediccion_2.csv", index=False, encoding="utf-8")
          
     #preparacion para subir al bucket de gcloud
-    fecha= datetime.now().strftime("%Y-%m-%d")
+    
     bucket_name="datosaemetgio"
-    destination_blob_name =f"output/{fecha}/prediccion_{fecha}.csv"
+    destination_blob_name =f"output/{fecha}/prediccion{fecha}.csv"
     #inicializa el cliente de gCloudStorage
     storage_client= storage.Client()
     #obtencion del bucket
@@ -144,9 +145,95 @@ def tiempopre():
     blob.upload_from_filename(local_file)
     print(f"Archivo {local_file} subido a gs://{bucket_name}/{destination_blob_name}")
 
+#Configuracion de la tabla con su esquema
+proyecto = "r2d-interno-dev"
+dataset_id="raw_aemet"
+id_tabla = "datosaemetgio_raw"
+id_tabla_full = f"{proyecto}.{dataset_id}.{id_tabla}"
+path_bucket=  f"gs://datosaemetgio/output_{fecha}_prediccion{fecha}.csv"
+
+#cliente bigquery
+client = bigquery.Client(project = proyecto)
+
+def eliminarTabla_siExiste():
+    try:
+        client.delete_table(id_tabla_full)
+        print(f"Tabla {id_tabla_full} eliminada.")
+    except Exception as e:
+        print(f"No se eliminó la tabla (puede que no exista): {e}")
+
+def crearTabla():
+    schema = [
+        bigquery.SchemaField("id", ""),
+        bigquery.SchemaField("fecha", "STRING"),
+        bigquery.SchemaField("municipio", "STRING"),
+        bigquery.SchemaField("provincia", "STRING"),
+        bigquery.SchemaField("periodo", "STRING"),
+        bigquery.SchemaField("prob_precipitacion", "STRING"),
+        bigquery.SchemaField("estado_cielo", "STRISTRINGNG"),
+        bigquery.SchemaField("temperatura_min", "STRING"),
+        bigquery.SchemaField("temperatura_max", "STRING"),
+    ]
+    table = bigquery.Table(id_tabla_full, schema=schema)
+    client.create_table(table)
+    print(f"Tabla {id_tabla_full} creada.")
+
+def cargarTabla():
+    job_config = bigquery.LoadJobConfig(
+        skip_leading_rows=1,
+        source_format=bigquery.SourceFormat.CSV,
+        schema=[
+            bigquery.SchemaField("id", "STRING"),
+            bigquery.SchemaField("fecha", "STRING"),
+            bigquery.SchemaField("municipio", "STRING"),
+            bigquery.SchemaField("provincia", "STRING"),
+            bigquery.SchemaField("periodo", "STRING"),
+            bigquery.SchemaField("prob_precipitacion", "STRING"),
+            bigquery.SchemaField("estado_cielo", "STRING"),
+            bigquery.SchemaField("temperatura_min_max", "STRING"),
+        ],
+        autodetect=False,
+        write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
+    )
+
+    load_job = client.load_table_from_uri(
+        path_bucket,
+        id_tabla_full,
+        job_config=job_config,
+    )
+    load_job.result()  # Esperar a que termine
+    print(f"Datos cargados desde {path_bucket}.")
+
+    # Post-procesar la tabla para extraer min y max
+    query = f"""
+    CREATE OR REPLACE TABLE `{id_tabla_full}` AS
+    SELECT
+      id,
+      fecha,
+      municipio,
+      provincia,
+      periodo,
+      prob_precipitacion,
+      estado_cielo,
+      CAST(SPLIT(temperatura_min_max, ' - ')[OFFSET(0)] AS STRING) AS temperatura_min,
+      CAST(SPLIT(temperatura_min_max, ' - ')[OFFSET(1)] AS STRING) AS temperatura_max
+    FROM `{id_tabla_full}`;
+    """
+    client.query(query).result()
+    print("Campo 'temperatura_min_max' separado en 'temperatura_min' y 'temperatura_max'.")
+
 if __name__ =="__main__":
     crearMuni()
     time.sleep(4)
     predicciones()
     time.sleep(4)
     tiempopre()
+    time.sleep(10)
+    eliminarTabla_siExiste()
+    crearTabla()
+    cargarTabla()
+
+
+
+
+
