@@ -170,7 +170,7 @@ def crearTabla():
         bigquery.SchemaField("provincia", "STRING"),
         bigquery.SchemaField("periodo", "STRING"),
         bigquery.SchemaField("prob_precipitacion", "STRING"),
-        bigquery.SchemaField("estado_cielo", "STRISTRINGNG"),
+        bigquery.SchemaField("estado_cielo", "STRING"),
         bigquery.SchemaField("temperatura_min", "STRING"),
         bigquery.SchemaField("temperatura_max", "STRING"),
     ]
