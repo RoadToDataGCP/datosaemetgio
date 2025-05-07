@@ -164,7 +164,7 @@ def eliminarTabla_siExiste():
 
 def crearTabla():
     schema = [
-        bigquery.SchemaField("id", "STRING"),
+        bigquery.SchemaField("codMuni", "STRING"),
         bigquery.SchemaField("fecha", "STRING"),
         bigquery.SchemaField("municipio", "STRING"),
         bigquery.SchemaField("provincia", "STRING"),
