@@ -116,6 +116,7 @@ def tiempopre():
                 for periodo in dia["probPrecipitacion"]:
                     predicciones.append({
                         "id": municipio["id"],
+                        "fecha": dia["fecha"],
                         "municipio": municipio["nombre"],
                         "provincia": municipio["provincia"],
                         "periodo": periodo["periodo"],
