@@ -8,6 +8,18 @@ from google.cloud import storage
 
 api_key="eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJndWVycmVyb2FudGhvbnk5NzA3QGdtYWlsLmNvbSIsImp0aSI6IjlhOGQxMzE4LTgxZjYtNDIzZC05NTVmLWQwMWVlNDI1YzgwMCIsImlzcyI6IkFFTUVUIiwiaWF0IjoxNzQzMDc3Mzg5LCJ1c2VySWQiOiI5YThkMTMxOC04MWY2LTQyM2QtOTU1Zi1kMDFlZTQyNWM4MDAiLCJyb2xlIjoiIn0.YmW6rvOu7CwfegjjNHdiow6Dz_zwGx1ljdaoVpadelA"
 
+def crearMuni():
+    df = pd.read_excel("diccionario24.xlsx")
+    df.columns = df.iloc[0]
+    df = df[1:]
+    municipios = df.loc[:,["CPRO","CMUN","NOMBRE"]]
+    municipios["CODIGO"] = municipios["CPRO"].map(str)+""+municipios["CMUN"].map(str)
+    del municipios["CMUN"]
+    del municipios["CPRO"]
+    col = municipios.pop("CODIGO")
+    municipios.insert(municipios.columns.get_loc('NOMBRE'), 'CODIGO', col)
+    print("municipios creados")
+    municipios.to_csv("municipios.csv", index=False)
 
 def predicciones():
     df = pd.read_csv("municipios.csv")
@@ -118,8 +130,9 @@ def tiempopre():
     df.to_csv("prediccion_2.csv", index=False, encoding="utf-8")
          
     #preparacion para subir al bucket de gcloud
+    fecha= datetime.now().strftime("%Y-%m-%d")
     bucket_name="datosaemetgio"
-    destination_blob_name =f"output/{fecha_actual}/prediccion_{fecha_actual}.csv"
+    destination_blob_name =f"output/{fecha}/prediccion_{fecha}.csv"
     #inicializa el cliente de gCloudStorage
     storage_client= storage.Client()
     #obtencion del bucket
@@ -131,6 +144,8 @@ def tiempopre():
     print(f"Archivo {local_file} subido a gs://{bucket_name}/{destination_blob_name}")
 
 if __name__ =="__main__":
+    crearMuni()
+    time.sleep(4)
     predicciones()
     time.sleep(4)
     tiempopre()
