@@ -116,7 +116,7 @@ def tiempopre():
             if dia["fecha"] == fecha_actual:
                 for periodo in dia["probPrecipitacion"]:
                     predicciones.append({
-                        "id": municipio["id"],
+                        "codMuni": municipio["id"],
                         "fecha": dia["fecha"],
                         "municipio": municipio["nombre"],
                         "provincia": municipio["provincia"],
@@ -128,7 +128,7 @@ def tiempopre():
 
     # Convertir a DataFrame y guardar en CSV
     df = pd.DataFrame(predicciones)
-    df["id"] = df["id"].apply(lambda x: f'{x:05d}')
+    df["codMuni"] = df["codMuni"].apply(lambda x: f'{x:05d}')
     df.to_csv("prediccion_2.csv", index=False, encoding="utf-8")
          
     #preparacion para subir al bucket de gcloud
@@ -183,7 +183,7 @@ def cargarTabla():
         skip_leading_rows=1,
         source_format=bigquery.SourceFormat.CSV,
         schema=[
-            bigquery.SchemaField("id", "STRING"),
+            bigquery.SchemaField("codMuni", "STRING"),
             bigquery.SchemaField("fecha", "STRING"),
             bigquery.SchemaField("municipio", "STRING"),
             bigquery.SchemaField("provincia", "STRING"),
