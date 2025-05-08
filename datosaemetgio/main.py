@@ -208,7 +208,7 @@ def cargarTabla():
     query = f"""
     CREATE OR REPLACE TABLE `{id_tabla_full}` AS
     SELECT
-      id,
+      codMuni,
       fecha,
       municipio,
       provincia,
